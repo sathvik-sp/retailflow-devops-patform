@@ -2,7 +2,3 @@
 .terraform/
 *.tfstate
 *.tfstate.*
-
-# Terraform variable files
-*.tfvars
-*.tfvars.json
