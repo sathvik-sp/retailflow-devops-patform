@@ -1,4 +1,4 @@
-variable "Rd_Name" {
+variable "Rg_Name" {
   description = "Name of the resource group"
   type        = string
 }
@@ -27,3 +27,14 @@ variable "aks_subnet_address_prefix" {
   description = "Address prefix for the AKS subnet"
   type        = list(string)
 }
+
+variable "acr_name" {
+  description = "Name of the Azure Container Registry"
+  type        = string
+}
+
+variable "sku_type" {
+  description = "SKU type for the Azure Container Registry"
+  type        = string
+}
+
