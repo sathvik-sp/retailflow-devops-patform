@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: retailflow-api
+  namespace: dev
+  labels:
+    app: retailflow-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: retailflow-api
+  template:
+    metadata:
+      labels:
+        app: retailflow-api
+    spec:
+      containers:
+        - name: retailflow-api
+          image: acrretailflowdev.azurecr.io/retailflow-api:dev
+          ports:
+            - containerPort: 5000
