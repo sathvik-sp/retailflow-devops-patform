@@ -8,7 +8,7 @@ module "networking" {
   source                    = "../../modules/networking"
   Vnet_name                 = var.Vnet_name
   Vnet_location             = var.Rg_Loc
-  Vnet_resource_group_name  = var.Rg_Name
+  Vnet_resource_group_name  = module.resource_group.resource_group_name
   Vnet_address_space        = var.Vnet_address_space
   aks_subnet_name           = var.aks_subnet_name
   aks_subnet_address_prefix = var.aks_subnet_address_prefix
@@ -17,7 +17,7 @@ module "networking" {
 module "acr" {
   source              = "../../modules/acr"
   acr_name            = var.acr_name
-  resource_group_name = var.Rg_Name
+  resource_group_name = module.resource_group.resource_group_name
   location            = var.Rg_Loc
   sku_type            = var.sku_type
 }
@@ -33,5 +33,11 @@ module "aks" {
   default_node_pool_vm_size    = var.default_node_pool_vm_size
   aks_subnet_id                = module.networking.aks_subnet_id
   service_cidr                 = var.service_cidr
-  dns_service_ip                = var.dns_service_ip
+  dns_service_ip               = var.dns_service_ip
+}
+
+resource "azurerm_role_assignment" "acr_pull" {
+  scope                = module.acr.acr_id
+  role_definition_name = "AcrPull"
+  principal_id         = module.aks.kubelet_identity_object_id
 }

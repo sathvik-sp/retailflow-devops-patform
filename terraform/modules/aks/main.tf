@@ -19,6 +19,10 @@ resource "azurerm_kubernetes_cluster" "this" {
     node_count     = var.default_node_pool_node_count
     vm_size        = var.default_node_pool_vm_size
     vnet_subnet_id = var.aks_subnet_id
+
+    upgrade_settings {
+      max_surge = "10%"
+    }
   }
 
   identity {
@@ -26,9 +30,9 @@ resource "azurerm_kubernetes_cluster" "this" {
   }
 
   network_profile {
-  service_cidr = var.service_cidr
-  network_plugin = "azure"
-  dns_service_ip = var.dns_service_ip
+    service_cidr   = var.service_cidr
+    network_plugin = "azure"
+    dns_service_ip = var.dns_service_ip
   }
 }
 
