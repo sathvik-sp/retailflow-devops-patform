@@ -21,3 +21,17 @@ module "acr" {
   location            = var.Rg_Loc
   sku_type            = var.sku_type
 }
+
+module "aks" {
+  source                       = "../../modules/aks"
+  cluster_name                 = var.cluster_name
+  location                     = var.Rg_Loc
+  resource_group_name          = var.Rg_Name
+  dns_prefix                   = var.dns_prefix
+  default_node_pool_name       = var.default_node_pool_name
+  default_node_pool_node_count = var.default_node_pool_node_count
+  default_node_pool_vm_size    = var.default_node_pool_vm_size
+  aks_subnet_id                = module.networking.aks_subnet_id
+  service_cidr                 = var.service_cidr
+  dns_service_ip                = var.dns_service_ip
+}
