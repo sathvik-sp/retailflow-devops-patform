@@ -18,9 +18,14 @@ spec:
       containers:
         - name: retailflow-api
           image: acrretailflowdev.azurecr.io/retailflow-api:dev
+
           ports:
             - containerPort: 5000
-          
+            
+          envFrom:
+            - configMapRef:
+                name: retailflow-api-config
+
           resources:
             requests:
               memory: "128Mi"

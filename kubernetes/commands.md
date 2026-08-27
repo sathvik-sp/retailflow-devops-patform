@@ -1,6 +1,10 @@
-# Azure Container Registry
+# RetailFlow Kubernetes Deployment Runbook
 
-## 1. Get the ACR login server
+This runbook covers publishing the Docker image to Azure Container Registry (ACR), connecting to the development AKS cluster, deploying the application, and verifying the service.
+
+## 1. Publish the Image to ACR
+
+### 1.1 Get the ACR login server
 
 ```bash
 az acr show \
@@ -15,7 +19,7 @@ Expected:
 acrretailflowdev.azurecr.io
 ```
 
-## 2. Authenticate Docker with ACR
+### 1.2 Authenticate Docker with ACR
 
 ```bash
 az acr login --name acrretailflowdev
@@ -27,25 +31,15 @@ Expected:
 Login Succeeded
 ```
 
-## 3. Tag the local image for ACR
+### 1.3 Tag and push the local image
 
 ```bash
 docker tag retailflow-api:dev acrretailflowdev.azurecr.io/retailflow-api:dev
-```
-
-Check both image tags:
-
-```bash
 docker images | grep retailflow-api
-```
-
-## 4. Push the image to ACR
-
-```bash
 docker push acrretailflowdev.azurecr.io/retailflow-api:dev
 ```
 
-## 5. Verify the repository exists in ACR
+### 1.4 Verify the image in ACR
 
 ```bash
 az acr repository list \
@@ -59,8 +53,6 @@ Expected:
 retailflow-api
 ```
 
-## 6. Verify image tags in ACR
-
 ```bash
 az acr repository show-tags \
   --name acrretailflowdev \
@@ -73,11 +65,8 @@ Expected:
 ```text
 dev
 ```
----
 
-# Deploy Flask Application to AKS
-
-## 1. Connect to AKS 
+## 2. Connect to AKS
 
 After recreating the AKS cluster, retrieve the Kubernetes credentials:
 
@@ -86,55 +75,53 @@ az aks get-credentials \
   --resource-group rg-retailflow-devops-platform \
   --name aks-retailflow-dev \
   --overwrite-existing
-````
+```
 
-Verify the current Kubernetes context:
+Verify the current context, cluster connectivity, and nodes:
 
 ```bash
 kubectl config current-context
-```
-
-Verify connectivity to the AKS cluster:
-
-```bash
 kubectl cluster-info
-```
-
-## 2. Verify AKS
-
-```bash
 kubectl get nodes
 ```
 
-## 3. Deploy the dev namespace
+## 3. Deploy the Development Workload
 
-Create the Kubernetes `dev` namespace:
+### 3.1 Create the `dev` namespace
 
 ```bash
 kubectl apply -f kubernetes/namespaces/dev.yaml
-```
-
-Verify the namespace:
-
-```bash
 kubectl get namespace dev
 ```
 
 Expected:
-```bash
+
+```text
 NAME   STATUS   AGE
 dev    Active   ...
 ```
-Verify that the namespace is currently empty:
+
+Confirm that the namespace is initially empty:
+
 ```bash
 kubectl get pods -n dev
 ```
+
 Expected:
-```bash
+
+```text
 No resources found in dev namespace.
 ```
 
-## 4. Deploy the application
+### 3.2 Create and verify the ConfigMap
+
+```bash
+kubectl apply -f kubernetes/config/retailflow-api.yaml
+kubectl get configmap -n dev
+kubectl describe configmap retailflow-api-config -n dev
+```
+
+### 3.3 Deploy the application
 
 ```bash
 kubectl apply -f kubernetes/deployment/retailflow-api.yaml
@@ -142,9 +129,22 @@ kubectl get deployment retailflow-api -n dev
 kubectl get pods -n dev
 ```
 
-## 5. Check application logs
+Monitor the rollout:
 
 ```bash
+kubectl rollout status deployment/retailflow-api -n dev
+```
+
+Expected:
+
+```text
+deployment "retailflow-api" successfully rolled out
+```
+
+Verify the pod and inspect its logs:
+
+```bash
+kubectl get pods -n dev
 kubectl logs -n dev <pod-name>
 ```
 
@@ -154,14 +154,21 @@ Example:
 kubectl logs -n dev retailflow-api-xxxxxxxxxx-xxxxx
 ```
 
-## 6. Create the Kubernetes Service
+Expected pod status:
+
+```text
+READY   STATUS
+1/1     Running
+```
+
+### 3.4 Create the Kubernetes Service
 
 ```bash
 kubectl apply -f kubernetes/service/retailflow-api.yaml
 kubectl get service -n dev
 ```
 
-## 7. Check Service routing
+Check service routing:
 
 ```bash
 kubectl describe service retailflow-api -n dev
@@ -176,46 +183,45 @@ Target port: 5000
 Endpoint: <pod-ip>:5000
 ```
 
-## 8. Monitor the rollout
-```bash
-kubectl rollout status deployment/retailflow-api -n dev
-```
-Expected:
-```bash
-deployment "retailflow-api" successfully rolled out
-```
-## 9. Verify the Pod
+## 4. Verify the Deployment
+
+### 4.1 Verify the ConfigMap environment variables
+
+Get the pod name:
+
 ```bash
 kubectl get pods -n dev
 ```
-Expected:
+
+Then inspect the application variables:
+
 ```bash
-READY   STATUS
-1/1     Running
+kubectl exec -n dev <pod-name> -- env | grep '^APP_'
 ```
 
-## 10. Inspect the Pod
+Expected:
+
+```text
+APP_ENV=dev
+APP_PORT=5000
+```
+
+### 4.2 Inspect pod health and details
+
 ```bash
 kubectl get pods -n dev
 kubectl describe pod -n dev <pod-name>
+kubectl get pod -n dev <pod-name> -o wide
 ```
-Check for:
-```bash
+
+Check for the health probes:
+
+```text
 Liveness:  http-get http://:5000/health
 Readiness: http-get http://:5000/health
 ```
 
-## 11. Check Pod details
-```bash
-kubectl get pod -n dev <pod-name> -o wide
-```
-
-## 12. Check application logs
-```bash
-kubectl logs -n dev <pod-name>
-```
-
-## 13. Test the Service
+### 4.3 Test the service locally
 
 Start port-forwarding:
 
@@ -237,7 +243,9 @@ Expected:
 {"status":"healthy"}
 ```
 
-## Troubleshooting
+## 5. Troubleshooting
+
+Use these commands to inspect the workload, deployment, and service:
 
 ```bash
 kubectl get pods -n dev
@@ -245,22 +253,17 @@ kubectl describe pod -n dev <pod-name>
 kubectl logs -n dev <pod-name>
 kubectl get deployment retailflow-api -n dev -o yaml
 kubectl get service retailflow-api -n dev
-```
-
-Check the container port:
-
-```bash
 kubectl get deployment retailflow-api -n dev -o yaml | grep containerPort
 ```
 
-## Port flow
+## 6. Port Flow
 
 ```text
-Flask application  → 5000
-Container port     → 5000
-Service port       → 80
-Service targetPort → 5000
-Local port-forward → 8080:80
+Flask application  -> 5000
+Container port     -> 5000
+Service port       -> 80
+Service targetPort -> 5000
+Local port-forward -> 8080:80
 ```
 
 `containerPort` describes the application's container port; it does not make Flask listen on that port.
