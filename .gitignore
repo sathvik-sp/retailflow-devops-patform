@@ -2,7 +2,13 @@
 .terraform/
 *.tfstate
 *.tfstate.*
+
+#VS code 
 *.venv*
 
 # Kubernetes secrets
 kubernetes/config/*secret*.yaml
+
+#pytest
+*.pytest_cache*
+*pycache*
