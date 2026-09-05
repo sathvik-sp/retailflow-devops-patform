@@ -25,6 +25,8 @@ spec:
           envFrom:
             - configMapRef:
                 name: retailflow-api-config
+            - secretRef:
+                name: retailflow-api-secret
 
           resources:
             requests:

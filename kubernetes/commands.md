@@ -121,7 +121,27 @@ kubectl get configmap -n dev
 kubectl describe configmap retailflow-api-config -n dev
 ```
 
-### 3.3 Deploy the application
+## 3.3 Create and verify the Secret
+
+```bash
+kubectl apply -f kubernetes/config/retailflow-api-secret.yaml
+kubectl get secrets -n dev
+```
+
+Expected:
+
+```text
+NAME                   TYPE     DATA   AGE
+retailflow-api-secret  Opaque   1      ...
+```
+
+Inspect the Secret metadata:
+
+```bash
+kubectl describe secret retailflow-api-secret -n dev
+```
+
+### 3.4 Deploy the application
 
 ```bash
 kubectl apply -f kubernetes/deployment/retailflow-api.yaml
@@ -161,7 +181,7 @@ READY   STATUS
 1/1     Running
 ```
 
-### 3.4 Create the Kubernetes Service
+### 3.5 Create the Kubernetes Service
 
 ```bash
 kubectl apply -f kubernetes/service/retailflow-api.yaml
@@ -202,6 +222,7 @@ kubectl exec -n dev <pod-name> -- env | grep '^APP_'
 Expected:
 
 ```text
+APP_SECRET=dev-placeholder-secret
 APP_ENV=dev
 APP_PORT=5000
 ```

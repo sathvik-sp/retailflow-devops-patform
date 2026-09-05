@@ -3,3 +3,6 @@
 *.tfstate
 *.tfstate.*
 *.venv*
+
+# Kubernetes secrets
+kubernetes/config/*secret*.yaml
