@@ -1,0 +1,25 @@
+trigger: 
+  - master
+pool: 
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - task: UsePythonVersion@0
+    inputs:
+      versionSpec: '3.12'
+    displayName: 'Set up Python 3.12'
+
+  - script: |
+      cd application
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt
+    displayName: 'Install dependencies'
+  
+  - script: |
+      cd application
+      pytest
+    displayName: 'Run tests'
+
+  - script: |
+      docker build -t retailflow-api:$(Build.SourceVersion) ./application
+    displayName: 'Build Docker image'
