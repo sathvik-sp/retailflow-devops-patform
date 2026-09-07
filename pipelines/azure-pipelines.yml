@@ -19,17 +19,11 @@ steps:
       cd application
       pytest
     displayName: 'Run tests'
-
-  - script: |
-      docker build -t retailflow-api:$(Build.SourceVersion) ./application
-    displayName: 'Build Docker image'
-  
-  - task: AzureCLI@2
+  - task: Docker@2
     inputs:
-      azureSubscription: 'sc-retailflow-azure'
-      scriptType: 'bash'
-      scriptLocation: 'inlineScript'
-      inlineScript: |
-        az acr login --name YourACRName
-        docker push acrretailflowdev.azurecr.io/retailflow-api:$(Build.SourceVersion)
-      displayName: 'Push Docker image to ACR'
+      containerRegistry: 'sc-retailflow-acr'
+      repository: 'sc-retailflow-acr'
+      command: 'buildAndPush'
+      Dockerfile: 'application/Dockerfile'
+      tags: '$(Build.SourceVersion)'
+    displayName: 'Build and Push Docker image to ACR'
