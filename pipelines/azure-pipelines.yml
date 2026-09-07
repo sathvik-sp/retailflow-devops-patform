@@ -22,7 +22,7 @@ steps:
   - task: Docker@2
     inputs:
       containerRegistry: 'sc-retailflow-acr'
-      repository: 'sc-retailflow-acr'
+      repository: 'retailflow-api'
       command: 'buildAndPush'
       Dockerfile: 'application/Dockerfile'
       tags: '$(Build.SourceVersion)'
