@@ -23,3 +23,11 @@ steps:
   - script: |
       docker build -t retailflow-api:$(Build.SourceVersion) ./application
     displayName: 'Build Docker image'
+  
+  - task: Docker@2
+    inputs:
+      containerRegistry: 'sc-retailflow-acr' 
+      repository: 'retailflow-api'
+      command: 'push'
+      tags: '$(Build.SourceVersion)'
+    displayName: 'Push Docker image to Azure Container Registry'

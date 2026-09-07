@@ -12,3 +12,6 @@ kubernetes/config/*secret*.yaml
 #pytest
 *.pytest_cache*
 *pycache*
+
+#Azure Repo PAT 
+*secret*.txt
