@@ -29,11 +29,10 @@ steps:
       tags: '$(Build.SourceVersion)'
     displayName: 'Build and Push Docker image to ACR'
 
-  - task: AzureCLI@3
+  - task: AzureCLI@2
     inputs:
-      connectionType: 'azureRM'
-      azureSubscription: 'Azure subscription 1(4493e15d-c6a9-4412-bd34-6ef713cd0f5d)'
-      scriptType: 'batch'
+      azureSubscription: 'Azure-subscription-SC'
+      scriptType: 'bash'
       scriptLocation: 'inlineScript'
       inlineScript: |
         az aks get-credentials --resource-group rg-retailflow-devops-platform --name aks-retailflow-dev --overwrite-existing 
