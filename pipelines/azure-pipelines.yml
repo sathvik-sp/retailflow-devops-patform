@@ -32,6 +32,7 @@ steps:
   - task: AzureCLI@3
     inputs:
       connectionType: 'azureRM'
+      azureSubscription: 'Azure subscription 1(4493e15d-c6a9-4412-bd34-6ef713cd0f5d)'
       scriptType: 'batch'
       scriptLocation: 'inlineScript'
       inlineScript: |
