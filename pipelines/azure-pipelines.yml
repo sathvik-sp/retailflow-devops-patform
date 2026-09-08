@@ -36,14 +36,7 @@ steps:
       scriptType: 'batch'
       scriptLocation: 'inlineScript'
       inlineScript: |
-        az aks get-credentials \
-                  --resource-group rg-retailflow-devops-platform \
-                  --name aks-retailflow-dev \
-                  --overwrite-existing
-        
-        kubectl set image deployment/retailflow-api \
-                  retailflow-api=acrretailflowdev.azurecr.io/retailflow-api:$(Build.SourceVersion) \
-                  -n dev
-        
+        az aks get-credentials --resource-group rg-retailflow-devops-platform --name aks-retailflow-dev --overwrite-existing 
+        kubectl set image deployment/retailflow-api retailflow-api=acrretailflowdev.azurecr.io/retailflow-api:$(Build.SourceVersion) -n dev
         kubectl rollout status deployment/retailflow-api -n dev
     displayName: 'Deploy to AKS DEV'
