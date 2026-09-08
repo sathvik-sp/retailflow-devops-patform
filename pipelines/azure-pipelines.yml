@@ -19,6 +19,7 @@ steps:
       cd application
       pytest
     displayName: 'Run tests'
+
   - task: Docker@2
     inputs:
       containerRegistry: 'sc-retailflow-acr'
@@ -27,3 +28,21 @@ steps:
       Dockerfile: 'application/Dockerfile'
       tags: '$(Build.SourceVersion)'
     displayName: 'Build and Push Docker image to ACR'
+
+  - task: AzureCLI@3
+    inputs:
+      connectionType: 'azureRM'
+      scriptType: 'batch'
+      scriptLocation: 'inlineScript'
+      inlineScript: |
+        az aks get-credentials \
+                  --resource-group rg-retailflow-devops-platform \
+                  --name aks-retailflow-dev \
+                  --overwrite-existing
+        
+        kubectl set image deployment/retailflow-api \
+                  retailflow-api=acrretailflowdev.azurecr.io/retailflow-api:$(Build.SourceVersion) \
+                  -n dev
+        
+        kubectl rollout status deployment/retailflow-api -n dev
+    displayName: 'Deploy to AKS DEV'
