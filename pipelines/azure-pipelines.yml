@@ -1,5 +1,6 @@
 trigger: 
   - master
+  - day-17-automated-smoke-test
 pool: 
   vmImage: 'ubuntu-latest'
 
@@ -38,4 +39,7 @@ steps:
         az aks get-credentials --resource-group rg-retailflow-devops-platform --name aks-retailflow-dev --overwrite-existing 
         kubectl set image deployment/retailflow-api retailflow-api=acrretailflowdev.azurecr.io/retailflow-api:$(Build.SourceVersion) -n dev
         kubectl rollout status deployment/retailflow-api -n dev
+        kubectl port-forward -n dev service/retailflow-api 8080:80 > /tmp/retailflow-port-forward.log 2>&1 &
+        sleep 5
+        curl --fail http://localhost:8080/health
     displayName: 'Deploy to AKS DEV'
