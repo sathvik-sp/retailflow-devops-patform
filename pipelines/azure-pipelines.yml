@@ -1,63 +1,147 @@
 trigger: 
   - master
-  - day*
+  - sub-branch
+ 
 pool: 
   vmImage: 'ubuntu-latest'
 
-steps:
-  - task: UsePythonVersion@0
-    inputs:
-      versionSpec: '3.12'
-    displayName: 'Set up Python 3.12'
+variables:
+  Image_tag: '$(Build.SourceVersion)'
+  Image_name: 'retailflow-api'
 
-  - script: |
-      cd application
-      python -m pip install --upgrade pip
-      pip install -r requirements.txt
-    displayName: 'Install dependencies'
+stages:
+
+# BUILD, SCAN & PUSH
+
+- stage: BuildScanPush
+  displayName: 'Build, Security scan and Push Docker Image'
+  jobs:
   
-  - script: |
-      cd application
-      pytest
-    displayName: 'Run tests'
+  - job: BuildScanPushImage
+    displayName: 'Build Docker Image and Scan and Push'
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: '3.12'
+      displayName: 'Set up Python 3.12'
 
-  - task: Docker@2
-    inputs:
-      containerRegistry: 'sc-retailflow-acr'
-      repository: 'retailflow-api'
-      command: 'buildAndPush'
-      Dockerfile: 'application/Dockerfile'
-      tags: '$(Build.SourceVersion)'
-    displayName: 'Build and Push Docker image to ACR'
+    - script: |
+        cd application
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+      displayName: 'Install dependencies'
+  
+    - script: |
+        cd application
+        pytest
+      displayName: 'Run tests'
 
-  - script: |
-      sudo apt-get update
-      sudo apt-get install -y wget
-      wget -qO- https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
-      echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
-      sudo apt-get update
-      sudo apt-get install -y trivy
-      trivy --version
-    displayName: 'Install Trivy'
+    - task: Docker@2
+      inputs:
+        repository: '$(Image_name)'
+        command: 'build'
+        Dockerfile: 'application/Dockerfile'
+        tags: '$(Image_tag)'
+      displayName: 'Build Docker image to ACR'
 
-  - script: |
-      trivy image \
-        --severity HIGH,CRITICAL \
-        --ignore-unfixed \
-        --exit-code 1 \
-        acrretailflowdev.azurecr.io/retailflow-api:$(Build.SourceVersion)
-    displayName: 'Scan Docker image'
+    - script: |
+        sudo apt-get update
+        sudo apt-get install -y wget
+        wget -qO- https://aquasecurity.github.io/trivy-repo/deb/public.key | gpg --dearmor | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+        echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main" | sudo tee /etc/apt/sources.list.d/trivy.list
+        sudo apt-get update
+        sudo apt-get install -y trivy
+        trivy --version
+      displayName: 'Install Trivy'
 
-  - task: AzureCLI@2
-    inputs:
-      azureSubscription: 'Azure-subscription-SC'
-      scriptType: 'bash'
-      scriptLocation: 'inlineScript'
-      inlineScript: |
-        az aks get-credentials --resource-group rg-retailflow-devops-platform --name aks-retailflow-dev --overwrite-existing 
-        kubectl set image deployment/retailflow-api retailflow-api=acrretailflowdev.azurecr.io/retailflow-api:$(Build.SourceVersion) -n dev
-        kubectl rollout status deployment/retailflow-api -n dev
-        kubectl port-forward -n dev service/retailflow-api 8080:80 > /tmp/retailflow-port-forward.log 2>&1 &
-        sleep 5
-        curl --fail http://localhost:8080/health
-    displayName: 'Deploy to AKS DEV'
+    - script: |
+        trivy image \
+          --severity HIGH,CRITICAL \
+          --ignore-unfixed \
+          --exit-code 1 \
+          $(Image_name):$(Image_tag)
+      displayName: 'Scan Docker image'
+
+    - script: |
+        docker tag \
+          $(Image_name):$(Image_tag) \
+          acrretailflowdev.azurecr.io/$(Image_name):$(Image_tag)
+      displayName: 'Tag image for ACR'
+      
+    - task: Docker@2
+      inputs:
+        containerRegistry: 'sc-retailflow-acr'
+        repository: '$(Image_name)'
+        command: 'push'
+        tags: '$(Image_tag)'
+      displayName: 'Push Docker image to ACR'
+
+# DEPLOY to DEV
+- stage: DeployDev
+  displayName: 'Deploy to AKS DEV'
+  dependsOn: BuildScanPush
+  condition: succeeded()
+  jobs:
+
+  - job: DeployDev
+    displayName: 'Deploy RetailFlow to DEV'
+    steps:
+
+    - task: AzureCLI@2
+      inputs:
+        azureSubscription: 'Azure-subscription-SC'
+        scriptType: 'bash'
+        scriptLocation: 'inlineScript'
+        inlineScript: |
+          az aks get-credentials --resource-group rg-retailflow-devops-platform --name aks-retailflow-dev --overwrite-existing 
+          kubectl set image deployment/retailflow-api retailflow-api=acrretailflowdev.azurecr.io/retailflow-api:$(Image_tag) -n dev
+          kubectl rollout status deployment/retailflow-api -n dev
+          kubectl port-forward -n dev service/retailflow-api 8080:80 > /tmp/retailflow-port-forward.log 2>&1 &
+          sleep 5
+          curl --fail http://localhost:8080/health
+      displayName: 'Deploy and Smoke Test DEV'
+
+# DEPLOY PROD
+
+- stage: DeployProd
+  displayName: 'Deploy to AKS PROD'
+  dependsOn: DeployDev
+  condition: succeeded()
+  jobs:
+
+  - deployment: DeployProd
+    displayName: 'Deploy RetailFlow to PROD'
+    environment: 'retailflow-prod'
+
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+
+          - task: AzureCLI@2
+            inputs:
+              azureSubscription: 'Azure-subscription-SC'
+              scriptType: 'bash'
+              scriptLocation: 'inlineScript'
+              inlineScript: |
+                az aks get-credentials \
+                  --resource-group rg-retailflow-devops-platform \
+                  --name aks-retailflow-dev \
+                  --overwrite-existing
+
+                kubectl set image deployment/retailflow-api \
+                  retailflow-api=acrretailflowdev.azurecr.io/retailflow-api:$(Image_tag) \
+                  -n prod
+
+                kubectl rollout status deployment/retailflow-api -n prod
+
+                kubectl port-forward \
+                  -n prod \
+                  service/retailflow-api \
+                  8081:80 \
+                  > /tmp/retailflow-prod-port-forward.log 2>&1 &
+
+                sleep 5
+
+                curl --fail http://localhost:8081/health
+            displayName: 'Deploy and Smoke Test PROD'
