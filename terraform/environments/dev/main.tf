@@ -41,3 +41,19 @@ resource "azurerm_role_assignment" "acr_pull" {
   role_definition_name = "AcrPull"
   principal_id         = module.aks.kubelet_identity_object_id
 }
+
+data "azurerm_client_config" "current" {}
+
+module "keyvault" {
+  source              = "../../modules/keyvault"
+  name                = var.keyvault_name
+  location            = var.Rg_Loc
+  resource_group_name = var.Rg_Name
+  tenant_id           = data.azurerm_client_config.current.tenant_id
+}
+
+resource "azurerm_role_assignment" "retailflow_keyvault" {
+  scope                = module.keyvault.key_vault_id
+  role_definition_name = "Key Vault Secrets User"
+  principal_id         = module.aks.workload_identity_principal_id
+}

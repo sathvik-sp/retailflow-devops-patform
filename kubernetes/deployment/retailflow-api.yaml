@@ -4,6 +4,7 @@ metadata:
   name: retailflow-api
   labels:
     app: retailflow-api
+
 spec:
   replicas: 1
   selector:
@@ -12,8 +13,12 @@ spec:
   template:
     metadata:
       labels:
+        azure.workload.identity/use: "true"
         app: retailflow-api
+    
     spec:
+      serviceAccountName: retailflow-api-sa
+
       containers:
         - name: retailflow-api
           image: acrretailflowdev.azurecr.io/retailflow-api:dev

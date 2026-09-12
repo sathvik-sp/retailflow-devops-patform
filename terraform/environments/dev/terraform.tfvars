@@ -16,3 +16,5 @@ default_node_pool_vm_size    = "Standard_D2als_v7"
 dns_prefix                   = "aks-retailflow-dev"
 service_cidr                 = "10.1.0.0/16"
 dns_service_ip               = "10.1.0.10"
+
+keyvault_name = "kv-retailflow-dev"

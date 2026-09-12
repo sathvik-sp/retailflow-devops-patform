@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: retailflow-api-sa
+  namespace: dev
+  annotations:
+    azure.workload.identity/client-id: "7a95971c-e536-4404-8d2e-b67ef8a5c58e"

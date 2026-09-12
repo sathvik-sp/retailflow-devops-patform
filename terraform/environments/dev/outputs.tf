@@ -27,3 +27,33 @@ output "kubelet_identity_object_id" {
   description = "Object ID of the kubelet identity"
   value       = module.aks.kubelet_identity_object_id
 }
+
+output "key_vault_id" {
+  description = "ID of the Key Vault"
+  value       = module.keyvault.key_vault_id
+}
+
+output "key_vault_name" {
+  description = "Name of the Key Vault"
+  value       = module.keyvault.key_vault_name
+}
+
+output "key_vault_uri" {
+  description = "URI of the Key Vault"
+  value       = module.keyvault.key_vault_uri
+}
+
+output "workload_identity_client_id" {
+  description = "Client ID of the workload identity"
+  value       = module.aks.workload_identity_client_id
+}
+
+output "workload_identity_principal_id" {
+  description = "Principal ID of the workload identity"
+  value       = module.aks.workload_identity_principal_id
+}
+
+output "oidc_issuer_url" {
+  description = "URL of the OIDC issuer"
+  value       = module.aks.oidc_issuer_url
+}

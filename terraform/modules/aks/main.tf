@@ -36,3 +36,16 @@ resource "azurerm_kubernetes_cluster" "this" {
   }
 }
 
+resource "azurerm_user_assigned_identity" "retailflow_workload" {
+  name                = "id-retailflow-workload"
+  location            = var.location
+  resource_group_name = var.resource_group_name
+}
+
+resource "azurerm_federated_identity_credential" "retailflow" {
+  name                      = "fic-retailflow-api"
+  audience                  = ["api://AzureADTokenExchange"]
+  issuer                    = azurerm_kubernetes_cluster.this.oidc_issuer_url
+  user_assigned_identity_id = azurerm_user_assigned_identity.retailflow_workload.id
+  subject                   = "system:serviceaccount:dev:retailflow-api-sa"
+}

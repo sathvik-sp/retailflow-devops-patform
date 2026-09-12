@@ -72,3 +72,8 @@ variable "dns_service_ip" {
   description = "The IP address for the Kubernetes DNS service"
   type        = string
 }
+
+variable "keyvault_name" {
+  description = "Name of the Azure Key Vault"
+  type        = string
+}
